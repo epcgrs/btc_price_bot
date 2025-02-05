@@ -35,7 +35,7 @@ async function getBitcoinPrice() {
         const response = await axios.get("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT");
         return parseFloat(response.data.price);
     } catch (error) {
-        console.error("Erro ao obter preço do Bitcoin", error);
+        console.log("Erro ao obter preço do Bitcoin", error);
         return null;
     }
 }
@@ -45,7 +45,7 @@ async function getHistoricalPrices() {
         const response = await axios.get("https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=200");
         return response.data.map(row => parseFloat(row[4]));
     } catch (error) {
-        console.error("Erro ao obter preços históricos", error);
+        console.log("Erro ao obter preços históricos", error);
         return [];
     }
 }
@@ -116,10 +116,13 @@ bot.on('message', async (msg) => {
         bot.sendMessage(chat_id, "✅ Seu alerta foi removido.");
     } else if (text.startsWith("/preco")) {
         const price = await getBitcoinPrice();
+        if (!price) return bot.sendMessage(chat_id, "⚠️ Erro ao obter o preço do Bitcoin.");
+        
         bot.sendMessage(chat_id, `📈 O preço atual do Bitcoin é **$${price.toFixed(2)}**.`);
     } else if (text.startsWith("/mayer")) {
         const mayer = await calculateMayerMultiple();
         if (!mayer) return bot.sendMessage(chat_id, "⚠️ Erro ao calcular Mayer Multiple.");
+        
         bot.sendMessage(chat_id, `📊 **Mayer Multiple**: ${mayer.mayer_multiple.toFixed(2)}\n💰 **Preço Atual**: $${mayer.price.toFixed(2)}\n📉 **Média Móvel 200d**: $${mayer.sma_200.toFixed(2)}`);
     } else if (text.startsWith("/alert_midnight")) {
         const args = text.split(" ");
