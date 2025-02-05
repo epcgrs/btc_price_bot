@@ -3,7 +3,7 @@ const sqlite3 = require('sqlite3').verbose();
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-import dotenv from 'dotenv';
+const dotenv = require('dotenv');
 dotenv.config();
 
 const TOKEN = process.env.TOKEN;
@@ -72,8 +72,8 @@ async function checkAlerts() {
         rows.forEach(row => {
             const price_diff = ((current_price - row.initial_price) / row.initial_price) * 100;
             if (Math.abs(price_diff) >= row.percent_change) {
-                bot.sendMessage(row.user_id, `📈 Alerta: O Bitcoin variou ${price_diff.toFixed(2)}%. Desde o valor inicial de $${row.initial_price.toFixed(2)}. Preço atual: $${current_price.toFixed(2)}.`);
                 if (row.alert_type === 'normal') {
+                    bot.sendMessage(row.user_id, `📈 Alerta: O Bitcoin variou ${price_diff.toFixed(2)}%. Desde o valor inicial de $${row.initial_price.toFixed(2)}. Preço atual: $${current_price.toFixed(2)}.`);
                     db.run("DELETE FROM alerts WHERE id = ?", [row.id]);
                 }
             }
@@ -82,6 +82,8 @@ async function checkAlerts() {
                 const last_midnight = Math.floor(new Date().setHours(0, 0, 0, 0) / 1000);
                 
                 if (row.set_time < last_midnight) { // Só atualiza se já passou um novo dia
+                    bot.sendMessage(row.user_id, `📈📈 Alerta: O Bitcoin variou ${price_diff.toFixed(2)}%. Desde o valor inicial de $${row.initial_price.toFixed(2)}. Preço atual: $${current_price.toFixed(2)}.`);
+
                     db.run("UPDATE alerts SET set_time = ?, initial_price = ? WHERE user_id = ? AND alert_type = 'midnight'", 
                         [last_midnight, current_price, row.user_id]);
                 }
@@ -132,7 +134,7 @@ bot.on('message', async (msg) => {
             bot.sendMessage(chat_id, "⚠️ Uso: /alert_midnight <percentual>");
         }
     } else if (text.startsWith("/help")) {
-        bot.sendMessage(chat_id, "📌 /alerta <percentual> = avisa a variaçãao a partir da criação do alerta.\n❌ /cancelar_alerta = cancela seuss alertas.\n📈 /preco = mostra a cotaçãoa atual. \n📊 /mayer = mostra o múltiplo de mayer. \n🕛 /alert_midnight <percentual> = Cria um alerta  usand o preço atual, mas atualiza todo dia a cotação para que leve em consideração o preço desde 00:00h. \n\nConsidere fazer uma doação via Lightning para o criador: https://coinos.io/mmzero");
+        bot.sendMessage(chat_id, "📌 /alerta <percentual> = avisa a variação a partir da criação do alerta.\n❌ /cancelar_alerta = cancela seus alertas.\n📈 /preco = mostra a cotação atual. \n📊 /mayer = mostra o múltiplo de mayer. \n🕛 /alert_midnight <percentual> = Cria um alerta  usando preço atual, mas atualiza todo dia a cotação para que leve em consideração o preço desde 00:00h. \n\nConsidere fazer uma doação via Lightning para o criador: https://coinos.io/mmzero");
     } else {
         bot.sendMessage(chat_id, "⚠️ Comando desconhecido.");
     }
