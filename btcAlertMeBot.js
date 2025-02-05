@@ -3,8 +3,11 @@ const sqlite3 = require('sqlite3').verbose();
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+import dotenv from 'dotenv';
+dotenv.config();
 
-const TOKEN = "TOKEN";
+const TOKEN = process.env.TOKEN;
+
 const API_URL = `https://api.telegram.org/bot${TOKEN}/`;
 const DB_FILE = "alerts.db";
 
