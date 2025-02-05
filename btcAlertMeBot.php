@@ -1,9 +1,24 @@
 <?php
-$TOKEN = "INSIRA SEU TOKEN AQUI";
-$API_URL = "https://api.telegram.org/bot$TOKEN/";
 
+ini_set('max_execution_time', 0); // 0 = sem limite
+ignore_user_abort(true); // Impede que o script pare se a conexão for fechada
+
+$TOKEN = "TOKEN";
+$API_URL = "https://api.telegram.org/bot$TOKEN/";
+$LOCK_FILE = __DIR__ . "/btcAlertMeBot.lock";
 // Definir arquivo de banco de dados
 $DB_FILE = "alerts.db";
+
+// Se o lock file existe e o processo ainda está rodando, sai do script
+if (file_exists($LOCK_FILE)) {
+    $pid = file_get_contents($LOCK_FILE);
+    if (posix_getpgid((int)$pid)) {
+        exit("Bot já está rodando. Saindo...\n");
+    }
+}
+
+// Cria o lock file com o ID do processo atual
+file_put_contents($LOCK_FILE, getmypid());
 
 // Criar banco de dados SQLite se não existir
 $db = new SQLite3($DB_FILE);
@@ -23,28 +38,19 @@ $db->exec("CREATE TABLE IF NOT EXISTS prices (
 
 
 // Função para obter o preço atual do Bitcoin
-function getBitcoinPrice($time = null) {
+function getBitcoinPrice() {
     global $db;
     $url = "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT";
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-
     $response = curl_exec($ch);
     curl_close($ch);
-
     $data = json_decode($response, true);
-
-    // insesrir o preço no banco de dados
-    if (isset($data["price"])) {
-        $timestamp = $time ?? time();
-        $db->exec("INSERT INTO prices (price, timestamp) VALUES (" . $data["price"] . ", " . $timestamp . ")");
-        return $data["price"];
-    }
-    return 0;
+    return $data["price"] ?? null;
 }
+
 
 // Função para obter preços históricos (últimos 200 dias)
 function getHistoricalPrices() {
@@ -171,20 +177,19 @@ function checkAlerts() {
         $initial_price = $row["initial_price"];
 
         if ($alert_type == 'midnight') {
-            $midnight_time = strtotime('midnight', $set_time);
-            if ($current_time >= $midnight_time) {
-                // Calcular a variação percentual
-                $price_diff = (($current_price - $initial_price) / $initial_price) * 100;
 
-                // Se houve variação maior ou igual ao limiar, dispara alerta
-                if (abs($price_diff) >= $threshold) {
-                    
-                    sendMessage($user_id, "📈📈 Alerta de variação: O preço do Bitcoin variou " . number_format($price_diff, 2) . "% desde o valor inicial de $ " . number_format($initial_price, 2) . ". O preço atual é $ " . number_format($current_price, 2) . ". \n\n Bora Stacker mais sats Magnata 🚀🚀🚀");
-                }
+            // Calcular a variação percentual
+            $price_diff = (($current_price - $initial_price) / $initial_price) * 100;
 
-                // Atualizar o alerta para o próximo dia e definir novo preço inicial
-                $db->exec("UPDATE alerts SET set_time = " . strtotime('midnight', $current_time) . ", initial_price = $current_price WHERE user_id = $user_id AND alert_type = 'midnight'");
+            // Se houve variação maior ou igual ao limiar, dispara alerta
+            if (abs($price_diff) >= $threshold) {
+                
+                sendMessage($user_id, "📈📈 Alerta de variação: O preço do Bitcoin variou " . number_format($price_diff, 2) . "% desde o valor inicial de $ " . number_format($initial_price, 2) . ". O preço atual é $ " . number_format($current_price, 2) . ". \n\n Bora Stacker mais sats Magnata 🚀🚀🚀");
             }
+
+            // Atualizar o alerta para o próximo dia e definir novo preço inicial
+            $db->exec("UPDATE alerts SET set_time = " . strtotime('midnight', $current_time) . ", initial_price = $current_price WHERE user_id = $user_id AND alert_type = 'midnight'");
+    
         } else {
             // Verificar se a variação percentual atingiu o limite
             $price_diff = (($current_price - $initial_price) / $initial_price) * 100;
@@ -234,3 +239,6 @@ function runBot() {
 
 // Iniciar o bot
 runBot();
+
+// Remove o lock file ao finalizar
+unlink($LOCK_FILE);
