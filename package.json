@@ -1,0 +1,25 @@
+{
+    "engines": {
+      "node": "18.x",
+      "npm": "9.x"
+    },
+    "scripts": {
+        "start": "node btcAlertMeBot.js"
+    },
+    "dependencies": {
+      "node-telegram-bot-api": "^0.57.0",
+      "sqlite3": "^5.1.6",
+      "axios": "^1.4.0",
+      "fs": "^0.0.1-security",
+      "path": "^0.12.7",
+      "dotenv": "^16.0.3"
+    },
+    "name": "btcalertme",
+    "version": "1.0.0",
+    "main": "btcAlertMeBot.js",
+    "devDependencies": {},
+    "author": "",
+    "license": "ISC",
+    "description": ""
+}
+  
